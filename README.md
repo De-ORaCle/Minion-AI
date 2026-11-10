@@ -243,7 +243,6 @@ Distributed under the **MIT License**. See [`LICENSE`](LICENSE) for details.
 
 ## 👤 Author & Maintainer
 
-**Bukola Olapade**  
-- **GitHub**: [@De-ORaCle](https://github.com/De-ORaCle)  
-- **Repository**: [https://github.com/De-ORaCle/Minion-AI](https://github.com/De-ORaCle/Minion-AI)  
-- **Email**: [benjaminolapade@gmail.com](mailto:benjaminolapade@gmail.com)
+- **Author**: Bukola Olapade ([@De-ORaCle](https://github.com/De-ORaCle))
+- **Official Repository**: [https://github.com/De-ORaCle/Minion-AI](https://github.com/De-ORaCle/Minion-AI)
+- **Community & Issues**: [GitHub Issues & Discussions](https://github.com/De-ORaCle/Minion-AI/issues)

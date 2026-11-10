@@ -1,36 +1,32 @@
 # 🚀 Minion AI — Deployment & Release Guide
 
 > **Official Repository**: [https://github.com/De-ORaCle/Minion-AI](https://github.com/De-ORaCle/Minion-AI)  
-> **Maintainer & Author**: Bukola Olapade ([benjaminolapade@gmail.com](mailto:benjaminolapade@gmail.com))
+> **Maintainer & Author**: [@De-ORaCle](https://github.com/De-ORaCle)
 
 This guide provides structured instructions for maintaining, building, and deploying **Minion AI** for both technical developers and non-technical end users.
 
 ---
 
-## 👤 Maintainer Git Identity
+## 👤 Maintainer Git Identity & Email Privacy
 
-When committing or pushing updates to GitHub, always verify your Git identity is configured as:
+To protect your personal email from web-scraping spam bots, GitHub provides a private `users.noreply.github.com` email address for public commits. You can configure Git locally using either your GitHub username or privacy email:
 
+```powershell
+git config user.name "De-ORaCle"
+git config user.email "De-ORaCle@users.noreply.github.com"
+```
+
+Or with your name:
 ```powershell
 git config user.name "Bukola Olapade"
-git config user.email "benjaminolapade@gmail.com"
+git config user.email "De-ORaCle@users.noreply.github.com"
 ```
 
-To set this globally on your workstation:
-
-```powershell
-git config --global user.name "Bukola Olapade"
-git config --global user.email "benjaminolapade@gmail.com"
-```
-
-Verify the configuration:
+Verify your configuration:
 
 ```powershell
 git config user.name
-# Output: Bukola Olapade
-
 git config user.email
-# Output: benjaminolapade@gmail.com
 ```
 
 ---
@@ -141,3 +137,4 @@ Minion is designed with a strict **Privacy-First, Local-First** guarantee:
 1. **Never commit personal telemetry**: `data/*.db` and SQLite database files are excluded via `.gitignore`.
 2. **Never expose API keys or cloud secrets**: Minion uses offline local LLMs via Ollama; no remote tokens or API keys are required.
 3. **Sensitive Data Masking**: Windows titles matching password managers (`Bitwarden`, `1Password`), banking portals, and private browsing sessions are sanitized automatically before hitting the database.
+
