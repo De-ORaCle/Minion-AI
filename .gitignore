@@ -1,0 +1,54 @@
+# =============================================================================
+# Minion AI — Official Git Ignore Rules
+# =============================================================================
+
+# 1. Byte-compiled / Optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.pyd
+
+# 2. Local User Data & SQLite Databases (100% Privacy Preservation)
+data/
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+minion.db
+
+# 3. PyInstaller Build Artifacts & Distribution Binaries
+# (Downloadable releases are published via GitHub Releases, not source control)
+build/
+dist/
+*.exe
+*.zip
+*.msi
+
+# 4. Scratch & Experimental Workspace Files
+scratch/
+
+# 5. Documentation: Keep public guides, ignore internal development session notes
+docs/*
+!docs/DEPLOYMENT.md
+!docs/OLLAMA_SETUP_GUIDE.md
+!docs/PROJECT_AIM.md
+
+# 6. Virtual Environments
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# 7. IDE, Editor & OS Metadata
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.log

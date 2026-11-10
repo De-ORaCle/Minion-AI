@@ -1,0 +1,15 @@
+# Core GUI & Process Monitoring
+customtkinter>=6.0.0
+darkdetect>=0.8.0
+psutil>=7.0.0
+pystray>=0.19.5
+
+# Visualization & Data Analysis
+matplotlib>=3.10.0
+pillow>=11.0.0
+pandas>=2.2.0
+numpy>=2.0.0
+
+# HTTP & Local AI Integration
+requests>=2.32.0
+packaging>=23.0
