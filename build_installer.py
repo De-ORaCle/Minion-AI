@@ -54,13 +54,13 @@ def find_iscc() -> Path:
 def build_app_if_needed():
     """Ensure the latest standalone Minion executable is built."""
     print("[*] Checking standalone executable bundle...")
-    # Recompile to ensure newest Onboarding wizard is present
-    build_script = PROJECT_DIR / "build_executable.py"
-    if build_script.exists():
-        print("[*] Recompiling latest standalone application bundle...")
-        result = subprocess.run([sys.executable, str(build_script)], cwd=PROJECT_DIR)
-        if result.returncode != 0:
-            raise RuntimeError(f"Standalone executable build failed with code {result.returncode}")
+    if not MINION_EXE.exists():
+        build_script = PROJECT_DIR / "build_executable.py"
+        if build_script.exists():
+            print("[*] Compiling latest standalone application bundle...")
+            result = subprocess.run([sys.executable, str(build_script)], cwd=PROJECT_DIR)
+            if result.returncode != 0:
+                raise RuntimeError(f"Standalone executable build failed with code {result.returncode}")
 
     if not MINION_EXE.exists():
         raise FileNotFoundError(f"Expected executable not found at: {MINION_EXE}")
@@ -100,6 +100,8 @@ def main():
     print("[*] Minion AI - Standalone Windows Setup Installer Generator")
     print("=" * 65)
     try:
+        # Check for Inno Setup compiler first
+        find_iscc()
         build_app_if_needed()
         build_installer()
     except Exception as e:
