@@ -101,7 +101,11 @@ class MainWindow(ctk.CTk):
         self.sprint_engine = SprintEngine(self.db, ai_agent=self.ai, context_manager=self.context_manager)
 
         # Detect and store PC hardware specs asynchronously in background without delaying startup
-        threading.Thread(target=lambda: detect_and_save_pc_context(self.db), daemon=True).start()
+        threading.Thread(
+            target=detect_and_save_pc_context,
+            args=(self.db,),
+            daemon=True,
+        ).start()
 
         # Background Screen Monitor
         self.monitor = ScreenMonitor(
@@ -682,8 +686,9 @@ class MainWindow(ctk.CTk):
             self.withdraw()
             # Inform user on first close that Minion continues working quietly in the tray
             has_seen_notice = self.db.get_setting("has_seen_tray_notice", default="false").lower() == "true"
-            if not has_seen_notice and hasattr(self, "tray_manager") and self.tray_manager:
-                self.tray_manager.notify(
+            tray = getattr(self, "tray_manager", None)
+            if not has_seen_notice and tray and getattr(tray, "available", False):
+                tray.notify(
                     title="Minion AI is Still Working",
                     message="Minion is running quietly in your system tray. Double-click or right-click the mascot icon anytime.",
                 )
