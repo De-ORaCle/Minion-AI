@@ -2,7 +2,7 @@
 macOS foreground-window and idle-time backend via Quartz / AppKit ctypes.
 
 Uses CoreGraphics for idle time and window titles, and NSWorkspace for the
-frontmost application. Window titles may be empty without Accessibility
+frontmost application. Window titles may be empty without Screen Recording
 permission; app name + PID still work without it.
 """
 
@@ -24,7 +24,7 @@ kCGAnyInputEventType = 0xFFFFFFFF  # ~0 as UInt32
 kCGWindowListOptionOnScreenOnly = 1 << 0
 kCGWindowListExcludeDesktopElements = 1 << 4
 
-_accessibility_hint_logged = False
+_screen_recording_hint_logged = False
 
 
 def _load_framework(name: str) -> ctypes.CDLL:
@@ -249,24 +249,28 @@ class MacOSWindowBackend:
                     pass
 
     def get_foreground(self) -> Dict[str, Any]:
-        global _accessibility_hint_logged
+        global _screen_recording_hint_logged
 
         if not self._ready:
             return {
                 "app_name": "Unknown",
                 "window_title": "Desktop / Idle",
                 "pid": 0,
+                "titles_available": False,
             }
 
         front = self._frontmost_app()
         app_name = front.get("app_name") or "Unknown"
         pid = int(front.get("pid") or 0)
-        window_title = self._window_title_for_pid(pid)
+        raw_title = self._window_title_for_pid(pid)
+        titles_available = bool(raw_title)
 
-        if not window_title:
+        if raw_title:
+            window_title = raw_title
+        else:
             window_title = app_name if app_name != "Unknown" else "Desktop / Idle"
-            if not _accessibility_hint_logged and app_name != "Unknown":
-                _accessibility_hint_logged = True
+            if not _screen_recording_hint_logged and app_name != "Unknown":
+                _screen_recording_hint_logged = True
                 logger.info(
                     "macOS window titles are empty or unavailable. "
                     "Grant Screen Recording to the app that launches Minion "
@@ -279,4 +283,5 @@ class MacOSWindowBackend:
             "app_name": app_name,
             "window_title": window_title,
             "pid": pid,
+            "titles_available": titles_available,
         }

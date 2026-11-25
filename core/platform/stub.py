@@ -14,6 +14,7 @@ class StubWindowBackend:
             "app_name": "Unknown",
             "window_title": "Desktop / Idle",
             "pid": 0,
+            "titles_available": False,
         }
 
 

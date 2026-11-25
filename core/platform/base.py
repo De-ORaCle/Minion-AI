@@ -16,7 +16,8 @@ class WindowBackend(Protocol):
     def get_foreground(self) -> Dict[str, Any]:
         """
         Return foreground app snapshot keys:
-        app_name (str), window_title (str), pid (int).
+        app_name (str), window_title (str), pid (int),
+        titles_available (bool) — False when OS permissions block real titles.
         """
         ...
 

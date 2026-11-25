@@ -66,4 +66,5 @@ class WindowsWindowBackend:
             "app_name": app_name,
             "window_title": window_title,
             "pid": pid,
+            "titles_available": True,
         }
