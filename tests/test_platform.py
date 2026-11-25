@@ -52,9 +52,11 @@ class TestPlatformAdapters(unittest.TestCase):
         self.assertIn("app_name", snapshot)
         self.assertIn("window_title", snapshot)
         self.assertIn("pid", snapshot)
+        self.assertIn("titles_available", snapshot)
         self.assertIsInstance(snapshot["app_name"], str)
         self.assertIsInstance(snapshot["window_title"], str)
         self.assertIsInstance(snapshot["pid"], int)
+        self.assertIsInstance(snapshot["titles_available"], bool)
 
         idle = get_window_backend().get_idle_seconds()
         self.assertIsInstance(idle, float)
