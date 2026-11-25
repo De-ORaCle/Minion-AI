@@ -202,11 +202,11 @@ class SettingsView(ctk.CTkFrame):
         )
         lbl_switch_hint.pack(anchor="w", pady=(0, 10))
 
-        # Switch 2: Windows Boot Autostart
+        # Switch 2: Login Autostart
         current_autostart = is_autostart_enabled()
         self.switch_autostart_boot = ctk.CTkSwitch(
             auto_inner,
-            text="Start Minion AI on Windows Boot (Silent Ambient Intelligence)",
+            text="Start Minion AI on Login (Silent Ambient Intelligence)",
             font=get_font(size=13, weight="bold"),
             text_color=THEME["text_primary"],
             progress_color=THEME["denim_blue"],
@@ -832,7 +832,7 @@ class SettingsView(ctk.CTkFrame):
         self.db.set_setting("tracking_enabled", "true" if is_enabled else "false")
 
     def _on_toggle_autostart_boot(self) -> None:
-        """Toggle Windows startup registry entry."""
+        """Toggle login/boot autostart registration."""
         is_enabled = bool(self.switch_autostart_boot.get())
         if is_enabled:
             enable_autostart(minimized=True)
