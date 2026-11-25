@@ -6,8 +6,8 @@
 The core aims of the project are:
 1. **Accurate, Non-Intrusive Activity Tracking**:
    - Poll active foreground windows, process executables, and window titles at configurable intervals (3s, 5s, 10s, 15s, 30s, 60s).
-   - Detect user absence/inactivity (idle detection) using Windows `GetLastInputInfo` so unattended screens do not inflate productivity metrics.
-   - Ultra-low system footprint (<0.01% CPU) using native Windows `ctypes` and `psutil`.
+   - Detect user absence/inactivity (idle detection) via platform backends — Windows `GetLastInputInfo`, or macOS `CGEventSourceSecondsSinceLastEventType` — so unattended screens do not inflate productivity metrics.
+   - Ultra-low system footprint (<0.01% CPU) using native OS APIs through `ctypes` (Windows `user32` / macOS Quartz & AppKit) and `psutil`.
 
 2. **Smart Multi-Tier Scored Categorization**:
    - Categorize every activity into distinct categories:
@@ -62,7 +62,7 @@ The core aims of the project are:
 | **GUI Framework** | `CustomTkinter` + `Tkinter` | Modern aesthetic, dark-mode native, lightweight, cross-platform compatibility, no heavy electron overhead. |
 | **Theme & Palette** | Minion Banana Yellow (`#FACC15`) & Denim Blue (`#2563EB`) | Distinctive, playful, yet professional visual design. |
 | **Visualization** | `Matplotlib` (TkAgg Canvas) | Native embedding inside Python GUI, customized Minion color palettes, zero browser dependencies. |
-| **OS Window & Activity Inspection** | `ctypes` (`user32.dll`) + `psutil` | Native Windows API calls (`GetForegroundWindow`, `GetWindowTextW`, `GetLastInputInfo`) for sub-millisecond overhead. |
+| **OS Window & Activity Inspection** | `core.platform` backends (`ctypes` + `psutil`) | Windows: `GetForegroundWindow` / `GetLastInputInfo`. macOS: NSWorkspace frontmost app, CGWindowList titles, CoreGraphics idle. Stub elsewhere. |
 | **Storage Engine** | `SQLite3` (WAL mode) | Embedded, zero-maintenance, ACID-compliant, lightning-fast queries, local privacy. |
 | **AI / LLM Engine** | `Ollama` (Local REST API) | Offline, sovereign AI (`llama3.2:3b`, `qwen2.5:3b`, etc.) running directly on the user's hardware. |
 | **Data Analysis** | `pandas` + `numpy` | Efficient time-series aggregation, rolling averages, and context grouping. |
@@ -74,7 +74,7 @@ The core aims of the project are:
 [User Active Screen]
         │
         ▼ (Configurable Interval Polling: 3s - 60s)
-[Screen Monitor (user32 + psutil)] ───► [Idle Detector (Inactivity check)]
+[Screen Monitor (platform backends + psutil)] ───► [Idle Detector (Inactivity check)]
         │
         ▼
 [Scored Categorization Engine]

@@ -9,10 +9,11 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python Version](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-blue.svg)](https://www.python.org/)
 [![Platform: Windows](https://img.shields.io/badge/Platform-Windows%2010%20%2F%2011-0078D6.svg)](https://www.microsoft.com/windows)
+[![Platform: macOS](https://img.shields.io/badge/Platform-macOS-000000.svg)](https://www.apple.com/macos/)
 [![Privacy: 100% Offline](https://img.shields.io/badge/Privacy-100%25%20Offline%20%26%20Local-emerald.svg)](#-100-privacy--offline-sovereignty)
 [![GitHub Repository](https://img.shields.io/badge/GitHub-De--ORaCle%2FMinion--AI-black.svg)](https://github.com/De-ORaCle/Minion-AI)
 
-**Bello!** Minion AI is a playful yet deeply powerful desktop productivity companion built with Python and CustomTkinter. Featuring signature Minion styling (**Banana Yellow** & **Denim Blue**), Minion runs quietly on your Windows desktop, tracking active work episodes with sub-second accuracy, identifying cognitive flow states, and transforming raw computer usage into actionable insights and shareable standups—**with 100% local privacy and zero cloud tracking**.
+**Bello!** Minion AI is a playful yet deeply powerful desktop productivity companion built with Python and CustomTkinter. Featuring signature Minion styling (**Banana Yellow** & **Denim Blue**), Minion runs quietly on your Windows or macOS desktop, tracking active work episodes with sub-second accuracy, identifying cognitive flow states, and transforming raw computer usage into actionable insights and shareable standups—**with 100% local privacy and zero cloud tracking**.
 
 [📥 Download Installer](https://github.com/De-ORaCle/Minion-AI/releases) • [🚀 Quick Start](#-quick-start-options) • [✨ Features](#-key-features) • [📖 Documentation](docs/DEPLOYMENT.md) • [🤖 Offline AI Setup](docs/OLLAMA_SETUP_GUIDE.md)
 
@@ -80,8 +81,8 @@ Minion AI adheres to an ergonomic, high-contrast light and dark palette inspired
 - **Temporal Query Engine**: Understands phrases like *today*, *yesterday*, *past 4 hours*, and cross-references SQLite logs to output mathematically precise answers.
 
 ### 2. ⏱️ Intelligent Activity Watcher & Deep Inference
-- **Sub-Second Foreground Tracking**: Inspects focused windows, process executables, and tab titles with near-zero CPU footprint (<0.01%) using Windows `ctypes` and `psutil`.
-- **Idle Detection Guard**: Senses mouse and keyboard inactivity (via Windows `GetLastInputInfo`) so stepping away never skews your focus score.
+- **Sub-Second Foreground Tracking**: Inspects focused windows, process executables, and tab titles with near-zero CPU footprint (<0.01%) via platform backends — Windows `user32`/`psutil`, or macOS Quartz/AppKit.
+- **Idle Detection Guard**: Senses mouse and keyboard inactivity (Windows `GetLastInputInfo`, or macOS `CGEventSourceSecondsSinceLastEventType`) so stepping away never skews your focus score.
 - **Micro-Action & Unsaved Edits Detection**: Detects file names (`chat_view.py`), language types (`Python`), and unsaved changes (`●`, `*`).
 - **Cognitive Friction Alerts**: Warns when you are oscillating rapidly between documentation and source files, diagnosing stuck debugging loops.
 
@@ -189,7 +190,8 @@ Minion-AI/
 ├── requirements.txt            # Python dependencies
 ├── assets/                     # Mascot sprites, icons, and Work Sans typography
 ├── core/                       # Core engine modules
-│   ├── monitor.py              # Windows active window tracker & idle detector
+│   ├── monitor.py              # Active window tracker & idle detector (OS-agnostic)
+│   ├── platform/               # Windows / macOS / stub window & autostart backends
 │   ├── database.py             # SQLite WAL persistence engine
 │   ├── single_instance.py      # Exclusive socket IPC guard
 │   ├── deep_analyzer.py        # Micro-action delta & loop detection
@@ -201,7 +203,7 @@ Minion-AI/
 │   └── ai_agent.py             # Local Ollama client & conversational bridge
 ├── gui/                        # CustomTkinter graphical interface
 │   ├── main_window.py          # Root window, sidebar, and lazy view loader
-│   ├── tray_manager.py         # Windows System Tray daemon
+│   ├── tray_manager.py         # System tray daemon (Windows; disabled on macOS)
 │   └── views/                  # Modular view screens
 │       ├── chat_view.py        # Minion Lounge & AI chat assistant
 │       ├── minion_crew.py      # Interactive mascot stage (Kevin, Stuart, Bob)
