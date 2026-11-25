@@ -81,11 +81,13 @@ class ScreenMonitor:
                 "app_name": "Unknown",
                 "window_title": "Desktop / Idle",
                 "pid": 0,
+                "titles_available": False,
             }
 
         app_name = foreground.get("app_name") or "Unknown"
         window_title = foreground.get("window_title") or "Desktop / Idle"
         pid = int(foreground.get("pid") or 0)
+        titles_available = bool(foreground.get("titles_available", True))
 
         idle_seconds = self.get_idle_time_seconds()
         is_idle = idle_seconds >= self.idle_threshold
@@ -101,6 +103,7 @@ class ScreenMonitor:
             "app_name": app_name,
             "window_title": window_title,
             "pid": pid,
+            "titles_available": titles_available,
             "is_idle": is_idle,
             "idle_seconds": round(idle_seconds, 1),
             "interval_seconds": self.interval,
