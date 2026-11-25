@@ -1,12 +1,14 @@
 """
 System Tray Manager for Minion AI.
 
-Integrates Minion AI into the Windows System Tray (Taskbar Notification Area)
-using pystray. Allows the application to work continuously in the background
-even when the window is closed, providing quick-action menus for pausing/resuming
-tracking, toggling Windows startup, restoring the window, and exiting.
+Integrates Minion AI into the system tray / notification area using pystray
+on platforms where it can coexist with Tk (notably Windows). On macOS,
+pystray's Darwin NSApplication backend conflicts with Tk/CustomTkinter and
+causes a process-killing SIGTRAP, so the tray is intentionally disabled and
+the Dock icon remains the restore surface.
 """
 
+import sys
 import threading
 import logging
 from typing import Callable, Optional
@@ -19,9 +21,13 @@ from core.autostart import is_autostart_enabled, enable_autostart, disable_autos
 
 logger = logging.getLogger("Minion.Tray")
 
+# pystray._darwin owns NSApplication and crashes (SIGTRAP / NSException) when
+# used alongside Tk's event loop — skip the tray on Darwin.
+TRAY_SUPPORTED = sys.platform != "darwin"
+
 
 class TrayManager:
-    """Manages the Windows System Tray icon, menu, and background notifications."""
+    """Manages the system tray icon, menu, and background notifications when supported."""
 
     def __init__(
         self,
@@ -43,11 +49,18 @@ class TrayManager:
         self.on_toggle_tracking = on_toggle_tracking
         self.on_quit = on_quit
         self.is_tracking_active = initial_tracking_active
+        self.available = TRAY_SUPPORTED
 
         self.icon: Optional[pystray.Icon] = None
         self._thread: Optional[threading.Thread] = None
 
-        self._init_icon()
+        if self.available:
+            self._init_icon()
+        else:
+            logger.info(
+                "System tray disabled on macOS (pystray + Tk conflict). "
+                "Use the Dock icon to restore the window after close-to-background."
+            )
 
     def _get_icon_image(self) -> Image.Image:
         """Load the high-resolution Minion PNG icon or generate a fallback icon in memory."""
@@ -98,7 +111,7 @@ class TrayManager:
             item(toggle_action_text, _handle_toggle),
             Menu.SEPARATOR,
             item(
-                "⚙️ Start on Windows Boot",
+                "⚙️ Start on Login",
                 _handle_autostart,
                 checked=lambda _item: is_autostart_enabled(),
             ),
@@ -119,6 +132,8 @@ class TrayManager:
 
     def start(self) -> None:
         """Launch the system tray icon in a dedicated background daemon thread."""
+        if not self.available:
+            return
         if not self.icon:
             self._init_icon()
 
@@ -140,32 +155,36 @@ class TrayManager:
             is_active: Current tracking status.
         """
         self.is_tracking_active = is_active
-        if self.icon:
-            try:
-                self.icon.menu = self._build_menu()
-                self.icon.update_menu()
-            except Exception as e:
-                logger.debug(f"Failed to update tray menu: {e}")
+        if not self.available or not self.icon:
+            return
+        try:
+            self.icon.menu = self._build_menu()
+            self.icon.update_menu()
+        except Exception as e:
+            logger.debug(f"Failed to update tray menu: {e}")
 
     def notify(self, title: str, message: str) -> None:
         """
-        Display a native Windows notification balloon from the system tray.
+        Display a native notification from the system tray when available.
 
         Args:
             title: Notification heading.
             message: Descriptive body text.
         """
-        if self.icon:
-            try:
-                self.icon.notify(message, title)
-            except Exception as e:
-                logger.debug(f"Could not dispatch tray notification: {e}")
+        if not self.available or not self.icon:
+            return
+        try:
+            self.icon.notify(message, title)
+        except Exception as e:
+            logger.debug(f"Could not dispatch tray notification: {e}")
 
     def stop(self) -> None:
         """Stop and remove the system tray icon."""
-        if self.icon:
-            try:
-                self.icon.stop()
-            except Exception as e:
-                logger.debug(f"Error stopping tray icon: {e}")
+        if not self.available or not self.icon:
             self.icon = None
+            return
+        try:
+            self.icon.stop()
+        except Exception as e:
+            logger.debug(f"Error stopping tray icon: {e}")
+        self.icon = None
