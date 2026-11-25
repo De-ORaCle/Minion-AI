@@ -44,7 +44,7 @@ def get_system_telemetry() -> Dict[str, str]:
     except Exception:
         ram_info = "Memory info unavailable"
 
-    # 5. Display Resolution (Windows Native)
+    # 5. Display Resolution
     display_info = "Default Display"
     if sys.platform == "win32":
         try:
@@ -52,6 +52,28 @@ def get_system_telemetry() -> Dict[str, str]:
             user32 = ctypes.windll.user32
             width = user32.GetSystemMetrics(0)
             height = user32.GetSystemMetrics(1)
+            display_info = f"{width}x{height} Primary Display"
+        except Exception:
+            display_info = "Display resolution detection unavailable"
+    elif sys.platform == "darwin":
+        # Use CoreGraphics — never create a second tk.Tk() root (especially from a
+        # background thread); that blanks/crashes CustomTkinter on macOS.
+        try:
+            import ctypes
+            import ctypes.util
+
+            path = ctypes.util.find_library("CoreGraphics") or (
+                "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics"
+            )
+            cg = ctypes.CDLL(path)
+            cg.CGMainDisplayID.restype = ctypes.c_uint32
+            cg.CGDisplayPixelsWide.restype = ctypes.c_size_t
+            cg.CGDisplayPixelsWide.argtypes = [ctypes.c_uint32]
+            cg.CGDisplayPixelsHigh.restype = ctypes.c_size_t
+            cg.CGDisplayPixelsHigh.argtypes = [ctypes.c_uint32]
+            display_id = cg.CGMainDisplayID()
+            width = int(cg.CGDisplayPixelsWide(display_id))
+            height = int(cg.CGDisplayPixelsHigh(display_id))
             display_info = f"{width}x{height} Primary Display"
         except Exception:
             display_info = "Display resolution detection unavailable"
