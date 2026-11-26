@@ -73,6 +73,15 @@ class TestPlatformAdapters(unittest.TestCase):
         self.assertIn("--minimized", cmd)
         self.assertIn("app.py", cmd)
 
+    def test_macos_packaging_scripts_and_icns_generation(self):
+        import build_executable
+        import build_macos_dmg
+
+        self.assertTrue(callable(build_executable.build_minion_executable))
+        self.assertTrue(callable(build_macos_dmg.build_dmg))
+        icns_path = build_executable._ensure_macos_icns()
+        self.assertTrue(icns_path.exists(), "Expected assets/icon.icns to be generated from icon.png")
+
 
 if __name__ == "__main__":
     unittest.main()

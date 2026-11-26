@@ -1,0 +1,122 @@
+name: Build & Publish Releases (macOS & Windows)
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: "Optional existing release tag to attach artifacts to (e.g. v1.0.0). Leave blank to just build downloadable workflow artifacts."
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  build-macos:
+    name: Build macOS (.dmg & Portable .zip)
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12 (with Tcl/Tk)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pyinstaller
+
+      - name: Run platform adapter tests
+        run: python -m unittest tests/test_platform.py
+
+      - name: Build macOS Minion.app & Portable ZIP
+        run: python build_executable.py
+
+      - name: Build macOS DMG Installer
+        run: python build_macos_dmg.py
+
+      - name: Upload macOS build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Minion-AI-macOS-Release
+          path: |
+            dist/Minion_AI_v1.0_macOS.dmg
+            dist/Minion_AI_v1.0_macOS_Portable.zip
+          if-no-files-found: error
+
+  build-windows:
+    name: Build Windows (Setup .exe & Portable .zip)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pyinstaller
+
+      - name: Run platform adapter tests
+        run: python -m unittest tests/test_platform.py
+
+      - name: Build Windows Minion.exe & Portable ZIP
+        run: python build_executable.py
+
+      - name: Install Inno Setup & Build Setup Installer
+        shell: pwsh
+        run: |
+          choco install innosetup --yes --no-progress
+          python build_installer.py
+
+      - name: Upload Windows build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Minion-AI-Windows-Release
+          path: |
+            dist/Minion_Setup_v1.0.exe
+            dist/Minion_AI_v1.0_Portable.zip
+          if-no-files-found: error
+
+  publish-release:
+    name: Attach Artifacts to GitHub Release
+    needs: [build-macos, build-windows]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && github.event.inputs.tag_name != '')
+    steps:
+      - name: Download all platform artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release_assets
+          merge-multiple: true
+
+      - name: Determine target release tag
+        id: target_tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.tag_name }}" ]; then
+            echo "tag=${{ github.event.inputs.tag_name }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish or Update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.target_tag.outputs.tag }}
+          name: "Minion AI ${{ steps.target_tag.outputs.tag }} — Windows & macOS Release"
+          generate_release_notes: true
+          files: |
+            release_assets/Minion_Setup_v1.0.exe
+            release_assets/Minion_AI_v1.0_Portable.zip
+            release_assets/Minion_AI_v1.0_macOS.dmg
+            release_assets/Minion_AI_v1.0_macOS_Portable.zip

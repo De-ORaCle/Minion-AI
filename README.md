@@ -28,12 +28,12 @@
 <td width="50%" valign="top">
 
 ### 👨‍💼 For Everyday Users (No Coding Required)
-*You just want a fun, loyal focus companion on your PC.*
+*You just want a fun, loyal focus companion on your PC or Mac.*
 
 1. Go to the **[Latest GitHub Releases](https://github.com/De-ORaCle/Minion-AI/releases)** page.
-2. Download **`Minion_Setup_v1.0.exe`** (Standard Windows Installer) or **`Minion_AI_v1.0_Portable.zip`** (No install needed).
-3. Run the installer or unzip and double-click **`Minion.exe`**.
-4. Minion starts tracking your active work immediately and sits quietly in your System Tray!
+2. **On Windows**: Download **`Minion_Setup_v1.0.exe`** (Standard Installer) or **`Minion_AI_v1.0_Portable.zip`** and run **`Minion.exe`**.
+3. **On macOS**: Download **`Minion_AI_v1.0_macOS.dmg`** (or **`Minion_AI_v1.0_macOS_Portable.zip`**), drag **`Minion.app`** into **Applications**, and open it (if Gatekeeper prompts on first launch, run `xattr -cr /Applications/Minion.app` or Control-click -> **Open**).
+4. Minion starts tracking your active work immediately!
 
 </td>
 <td width="50%" valign="top">
@@ -136,21 +136,23 @@ pip install -r requirements.txt
 python app.py
 ```
 
-### Option B: Building Executable & Portable Distribution
+### Option B: Building Executable & Portable Distribution (Windows & macOS)
 
-Minion includes automated packaging scripts that bundle Python and all assets into a standalone Windows executable:
+Minion includes automated packaging scripts that bundle Python and all assets into standalone native desktop binaries:
 
 ```powershell
-# Build standalone Minion.exe and portable ZIP package
+# Build standalone application (Windows: Minion.exe + Portable.zip | macOS: Minion.app + macOS_Portable.zip)
 python build_executable.py
 ```
-*Outputs: `dist/Minion/Minion.exe` and `dist/Minion_AI_v1.0_Portable.zip`.*
 
 ```powershell
-# Build single-file Windows setup wizard (.exe) using Inno Setup
+# Windows: Build single-file Windows setup wizard (.exe) using Inno Setup
 python build_installer.py
+
+# macOS: Build drag-and-drop macOS Disk Image installer (.dmg) using hdiutil
+python build_macos_dmg.py
 ```
-*Output: `dist/Minion_Setup_v1.0.exe`.*
+*Outputs: `dist/Minion_Setup_v1.0.exe`, `dist/Minion_AI_v1.0_Portable.zip`, `dist/Minion_AI_v1.0_macOS.dmg`, and `dist/Minion_AI_v1.0_macOS_Portable.zip`.*
 
 ---
 

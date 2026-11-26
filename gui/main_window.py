@@ -154,6 +154,13 @@ class MainWindow(ctk.CTk):
         if not onboarding_done:
             self.after(350, self.open_onboarding_wizard)
 
+        # Bind macOS Dock reopen event so clicking the Dock icon restores a withdrawn window
+        if sys.platform == "darwin":
+            try:
+                self.createcommand("tk::mac::ReopenApplication", self.show_window)
+            except Exception as e:
+                logger.debug(f"Could not bind tk::mac::ReopenApplication: {e}")
+
         # Trap close event for close-to-tray background daemon behavior
         self.protocol("WM_DELETE_WINDOW", self._on_close)
 

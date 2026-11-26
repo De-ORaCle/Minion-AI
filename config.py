@@ -21,7 +21,11 @@ if getattr(sys, "frozen", False):
     BUNDLE_DIR = Path(getattr(sys, "_MEIPASS", Path(sys.executable).parent))
     BASE_DIR = Path(sys.executable).parent
     ASSETS_DIR = BUNDLE_DIR / "assets"
-    DATA_DIR = BASE_DIR / "data"
+    if sys.platform == "darwin":
+        # macOS .app bundles reside in /Applications and must store user data in ~/Library/Application Support
+        DATA_DIR = Path.home() / "Library" / "Application Support" / "MinionAI" / "data"
+    else:
+        DATA_DIR = BASE_DIR / "data"
 else:
     BASE_DIR = Path(__file__).resolve().parent
     BUNDLE_DIR = BASE_DIR
@@ -29,9 +33,11 @@ else:
     DATA_DIR = BASE_DIR / "data"
 
 DATA_DIR.mkdir(exist_ok=True, parents=True)
-ASSETS_DIR.mkdir(exist_ok=True, parents=True)
+if not getattr(sys, "frozen", False):
+    ASSETS_DIR.mkdir(exist_ok=True, parents=True)
 ICON_PNG_PATH = ASSETS_DIR / "icon.png"
 ICON_ICO_PATH = ASSETS_DIR / "icon.ico"
+ICON_ICNS_PATH = ASSETS_DIR / "icon.icns"
 
 # Database Configuration: Embedded SQLite file using WAL (Write-Ahead Logging)
 DB_PATH = str(DATA_DIR / "minion_productivity.db")
@@ -113,9 +119,9 @@ FONT_FAMILY = "Segoe UI"
 FONTS_DIR = ASSETS_DIR / "fonts"
 
 def _register_application_fonts() -> str:
-    """Register custom TTF fonts (Work Sans) into Windows GDI session without admin rights."""
+    """Register custom TTF fonts (Work Sans) into OS session without admin rights."""
     global FONT_FAMILY
-    chosen_family = "Segoe UI"
+    chosen_family = "Helvetica Neue" if sys.platform == "darwin" else "Segoe UI"
     if sys.platform == "win32" and FONTS_DIR.exists():
         try:
             FR_PRIVATE = 0x10
@@ -124,6 +130,31 @@ def _register_application_fonts() -> str:
             chosen_family = "Work Sans"
         except Exception:
             chosen_family = "Segoe UI"
+    elif sys.platform == "darwin" and FONTS_DIR.exists():
+        try:
+            import ctypes.util
+            ct_path = ctypes.util.find_library("CoreText") or "/System/Library/Frameworks/CoreText.framework/CoreText"
+            cf_path = ctypes.util.find_library("CoreFoundation") or "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation"
+            ct = ctypes.CDLL(ct_path)
+            cf = ctypes.CDLL(cf_path)
+            cf.CFURLCreateFromFileSystemRepresentation.restype = ctypes.c_void_p
+            cf.CFURLCreateFromFileSystemRepresentation.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_long, ctypes.c_bool]
+            cf.CFRelease.argtypes = [ctypes.c_void_p]
+            ct.CTFontManagerRegisterFontsForURL.restype = ctypes.c_bool
+            ct.CTFontManagerRegisterFontsForURL.argtypes = [ctypes.c_void_p, ctypes.c_uint32, ctypes.c_void_p]
+            kCTFontManagerScopeProcess = 1
+            registered = False
+            for ttf in FONTS_DIR.glob("*.ttf"):
+                raw = str(ttf.resolve()).encode("utf-8")
+                url = cf.CFURLCreateFromFileSystemRepresentation(None, raw, len(raw), False)
+                if url:
+                    if ct.CTFontManagerRegisterFontsForURL(url, kCTFontManagerScopeProcess, None):
+                        registered = True
+                    cf.CFRelease(url)
+            if registered:
+                chosen_family = "Work Sans"
+        except Exception:
+            chosen_family = "Helvetica Neue"
     return chosen_family
 
 FONT_FAMILY = _register_application_fonts()

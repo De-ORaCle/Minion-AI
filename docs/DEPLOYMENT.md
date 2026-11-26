@@ -33,30 +33,36 @@ git config user.email
 
 ## 📦 Distribution Packages Overview
 
-Minion AI is distributed in three formats:
+Minion AI is distributed across Windows and macOS in the following formats:
 
 | Format | Target Audience | Python Required? | Installation Process |
 | :--- | :--- | :--- | :--- |
-| **Windows Setup Installer** (`Minion_Setup_v1.0.exe`) | Everyday non-technical users | ❌ No | Standard Windows Wizard (Desktop icon, Start Menu, System Tray autostart, uninstaller) |
-| **Standalone Portable ZIP** (`Minion_AI_v1.0_Portable.zip`) | Portable / USB / Non-admin users | ❌ No | Unzip and double-click `Minion.exe` or `Launch_Minion.vbs` |
+| **Windows Setup Installer** (`Minion_Setup_v1.0.exe`) | Everyday Windows users | ❌ No | Standard Windows Wizard (Desktop icon, Start Menu, System Tray autostart, uninstaller) |
+| **Windows Portable ZIP** (`Minion_AI_v1.0_Portable.zip`) | Portable / USB / Non-admin Windows users | ❌ No | Unzip and double-click `Minion.exe` or `Launch_Minion.vbs` |
+| **macOS Disk Image** (`Minion_AI_v1.0_macOS.dmg`) | Everyday macOS users | ❌ No | Open `.dmg` and drag `Minion.app` into `/Applications` |
+| **macOS Portable ZIP** (`Minion_AI_v1.0_macOS_Portable.zip`) | Portable macOS users | ❌ No | Unzip and launch `Minion.app` |
 | **Python Source Repository** | Developers, contributors, researchers | ✔ Yes (3.10+) | `git clone` + `pip install -r requirements.txt` |
 
 ---
 
 ## 🛠️ Building Standalone Binaries (For Releases)
 
-### 1. Build Standalone Portable Bundle
+### 1. Build Standalone Application & Portable Bundle (Windows or macOS)
 
-This compiles Python, CustomTkinter, system hooks, and the mascot assets into a self-contained folder and automatically compresses it into a `.zip` archive:
+This compiles Python, CustomTkinter, system hooks, and the mascot assets into a self-contained app bundle and automatically compresses it into a `.zip` archive:
 
 ```powershell
 python build_executable.py
 ```
-*Or double-click:* `Build_Standalone_Minion.bat`
+*Or on Windows, double-click:* `Build_Standalone_Minion.bat`
 
-**Outputs:**
+**Outputs on Windows:**
 - `dist/Minion/` (Self-contained application folder with `Minion.exe`)
 - `dist/Minion_AI_v1.0_Portable.zip` (Ready for GitHub Release upload)
+
+**Outputs on macOS:**
+- `dist/Minion.app` (Self-contained ad-hoc signed macOS application bundle)
+- `dist/Minion_AI_v1.0_macOS_Portable.zip` (Ready for GitHub Release upload)
 
 > [!NOTE]
 > UPX compression is intentionally disabled (`--noupx`) to eliminate cold-decompression lag on user workstations and prevent false-positive antivirus warnings.
@@ -79,23 +85,38 @@ python build_installer.py
 **Output:**
 - `dist/Minion_Setup_v1.0.exe` (Upload to GitHub Releases)
 
+### 3. Build macOS Disk Image Installer (`.dmg`)
+
+On a macOS host (or automatically via the GitHub Actions release workflow), compile the drag-and-drop `.dmg` installer containing `Minion.app`, an `/Applications` shortcut, and first-launch instructions:
+
+```bash
+python build_macos_dmg.py
+```
+
+**Output:**
+- `dist/Minion_AI_v1.0_macOS.dmg` (Upload to GitHub Releases)
+
 ---
 
-## 🌐 Publishing a Release on GitHub
+## 🌐 Publishing a Release on GitHub (Automated via GitHub Actions)
 
-1. **Tag the Release**:
-   ```powershell
-   git tag -a v1.0.0 -m "Release v1.0.0 — Minion Productivity Intelligence"
-   git push origin v1.0.0
-   ```
+The repository includes `.github/workflows/release.yml`, which automatically builds both **macOS** (`.dmg` + `.zip` on `macos-latest`) and **Windows** (`.exe` + `.zip` on `windows-latest`) binaries and attaches all four artifacts directly to the GitHub Release!
 
-2. **Create GitHub Release**:
-   - Navigate to `https://github.com/De-ORaCle/Minion-AI/releases/new`
-   - Select tag `v1.0.0`
-   - Release Title: `Minion AI v1.0.0 — Your Personal Focus Companion`
-   - Attach the compiled binaries from `dist/`:
-     - 📎 `Minion_Setup_v1.0.exe` (Recommended installer)
-     - 📎 `Minion_AI_v1.0_Portable.zip` (Portable standalone edition)
+### Option A: Push a Version Tag (Automatic Build & Release)
+```powershell
+git tag -a v1.0.1 -m "Release v1.0.1 — Windows & macOS Rollout"
+git push origin v1.0.1
+```
+GitHub Actions will immediately spin up macOS and Windows runners, run the platform tests, compile the installers, and create/update the GitHub Release with:
+- `Minion_Setup_v1.0.exe`
+- `Minion_AI_v1.0_Portable.zip`
+- `Minion_AI_v1.0_macOS.dmg`
+- `Minion_AI_v1.0_macOS_Portable.zip`
+
+### Option B: Attach macOS Builds to an Existing Release Tag (Manual Trigger)
+1. Go to **GitHub -> Actions -> Build & Publish Releases (macOS & Windows)**.
+2. Click **Run workflow**.
+3. Enter your existing tag (e.g., `v1.0.0`) in the `tag_name` input (or leave blank to simply download the built `.dmg` and `.zip` from the workflow summary).
 
 3. **Release Description Template**:
    ```markdown
