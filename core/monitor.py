@@ -1,5 +1,5 @@
 """
-Screen & Active Window Monitor for ProductivityCheck.
+Screen & Active Window Monitor for Minion.
 
 This module provides real-time tracking of:
 1. The currently focused application (executable name).
@@ -7,30 +7,15 @@ This module provides real-time tracking of:
 3. User idle detection (seconds elapsed since last keyboard/mouse event).
 4. Privacy masking for sensitive/confidential titles.
 
-Architectural Rationale:
-- Windows Native APIs (`user32.dll` and `kernel32.dll`) via `ctypes` are chosen because
-  they incur practically zero CPU overhead (<0.01%) and require no heavyweight external screen capture drivers.
-- Polling runs in a dedicated background `threading.Thread` with cooperative cancellation
-  via `threading.Event`, ensuring seamless responsiveness in the GUI.
+OS-specific probing is delegated to core.platform window backends
+(Windows ctypes / macOS Quartz). Polling runs in a dedicated background
+threading.Thread with cooperative cancellation via threading.Event.
 """
 
-import sys
 import time
 import logging
 import threading
 from typing import Dict, Any, Optional, Callable
-import psutil
-
-# Windows CTypes definition for GetLastInputInfo
-if sys.platform == "win32":
-    import ctypes
-    import ctypes.wintypes
-
-    class LASTINPUTINFO(ctypes.Structure):
-        _fields_ = [
-            ("cbSize", ctypes.wintypes.UINT),
-            ("dwTime", ctypes.wintypes.DWORD),
-        ]
 
 from config import (
     DEFAULT_POLL_INTERVAL,
@@ -38,6 +23,7 @@ from config import (
     DEFAULT_PRIVACY_EXCLUSIONS,
 )
 from core.deep_analyzer import DeepSnapshotAnalyzer
+from core.platform import get_window_backend
 
 logger = logging.getLogger(__name__)
 
@@ -68,72 +54,44 @@ class ScreenMonitor:
 
         self.deep_analyzer = DeepSnapshotAnalyzer()
         self._prev_snapshot: Optional[Dict[str, Any]] = None
+        self._window_backend = get_window_backend()
 
         self._stop_event = threading.Event()
         self._thread: Optional[threading.Thread] = None
         self._is_running = False
 
     def get_idle_time_seconds(self) -> float:
-        """
-        Query Windows API for milliseconds since the last keyboard or mouse input.
-        Returns idle time in seconds.
-        """
-        if sys.platform != "win32":
-            return 0.0
-
+        """Return seconds since the last keyboard or mouse input."""
         try:
-            lii = LASTINPUTINFO()
-            lii.cbSize = ctypes.sizeof(LASTINPUTINFO)
-            if ctypes.windll.user32.GetLastInputInfo(ctypes.byref(lii)):
-                millis = ctypes.windll.kernel32.GetTickCount() - lii.dwTime
-                return max(0.0, millis / 1000.0)
+            return float(self._window_backend.get_idle_seconds())
         except Exception as e:
             logger.debug(f"Error querying idle info: {e}")
-
-        return 0.0
+            return 0.0
 
     def get_active_window_info(self) -> Dict[str, Any]:
         """
         Capture the current foreground window title, process ID, and application name.
         Applies privacy sanitization if matched against exclusion keywords.
         """
-        app_name = "Unknown"
-        window_title = "Desktop / Idle"
-        pid = 0
+        try:
+            foreground = self._window_backend.get_foreground()
+        except Exception as e:
+            logger.debug(f"Error querying foreground window: {e}")
+            foreground = {
+                "app_name": "Unknown",
+                "window_title": "Desktop / Idle",
+                "pid": 0,
+                "titles_available": False,
+            }
 
-        if sys.platform == "win32":
-            try:
-                hwnd = ctypes.windll.user32.GetForegroundWindow()
-                if hwnd:
-                    # Retrieve window title text
-                    buf_len = 512
-                    buf = ctypes.create_unicode_buffer(buf_len)
-                    ctypes.windll.user32.GetWindowTextW(hwnd, buf, buf_len)
-                    raw_title = buf.value.strip()
+        app_name = foreground.get("app_name") or "Unknown"
+        window_title = foreground.get("window_title") or "Desktop / Idle"
+        pid = int(foreground.get("pid") or 0)
+        titles_available = bool(foreground.get("titles_available", True))
 
-                    # Retrieve Process ID
-                    proc_id = ctypes.wintypes.DWORD()
-                    ctypes.windll.user32.GetWindowThreadProcessId(hwnd, ctypes.byref(proc_id))
-                    pid = proc_id.value
-
-                    if raw_title:
-                        window_title = raw_title
-
-                    # Resolve executable name via psutil
-                    if pid > 0:
-                        try:
-                            proc = psutil.Process(pid)
-                            app_name = proc.name()
-                        except (psutil.NoSuchProcess, psutil.AccessDenied):
-                            app_name = "System Process"
-            except Exception as e:
-                logger.debug(f"Error querying foreground window: {e}")
-
-        # Check Idle status
         idle_seconds = self.get_idle_time_seconds()
         is_idle = idle_seconds >= self.idle_threshold
 
-        # Privacy Sanitization: Mask sensitive window titles
         title_lower = window_title.lower()
         app_lower = app_name.lower()
         for exclusion in self.privacy_exclusions:
@@ -145,6 +103,7 @@ class ScreenMonitor:
             "app_name": app_name,
             "window_title": window_title,
             "pid": pid,
+            "titles_available": titles_available,
             "is_idle": is_idle,
             "idle_seconds": round(idle_seconds, 1),
             "interval_seconds": self.interval,
@@ -198,8 +157,6 @@ class ScreenMonitor:
             except Exception as e:
                 logger.error(f"Error in monitor tick: {e}", exc_info=True)
 
-            # Sleep remainder of interval, checking stop event every 200ms
-            # to remain immediately responsive when the user clicks 'Stop'.
             elapsed = time.time() - start_tick
             sleep_needed = max(0.1, self.interval - elapsed)
             end_sleep = time.time() + sleep_needed

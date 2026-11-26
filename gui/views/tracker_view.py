@@ -14,6 +14,7 @@ Architectural Rationale:
 """
 
 import datetime
+import sys
 from typing import Dict, Any, Callable
 import customtkinter as ctk
 
@@ -48,6 +49,7 @@ class TrackerView(ctk.CTkFrame):
         self.on_change_interval = on_change_interval
         self.db = db_manager
         self.is_tracking = False
+        self._permission_banner_dismissed = False
 
         self._build_ui()
         self._load_persisted_history()
@@ -272,6 +274,47 @@ class TrackerView(ctk.CTkFrame):
             anchor="w",
         )
 
+        # macOS Screen Recording permission notice (hidden by default)
+        self.permission_banner = ctk.CTkFrame(
+            active_inner,
+            fg_color=THEME["yellow_tint"],
+            corner_radius=8,
+            border_width=1,
+            border_color=THEME["border"],
+        )
+        perm_inner = ctk.CTkFrame(self.permission_banner, fg_color="transparent")
+        perm_inner.pack(fill="x", padx=10, pady=8)
+
+        self.lbl_permission_banner = ctk.CTkLabel(
+            perm_inner,
+            text=(
+                "Window titles need Screen Recording permission. Grant it to the app "
+                "that launches Minion (Terminal, Cursor, or Minion) in System Settings → "
+                "Privacy & Security → Screen & System Audio Recording, then relaunch."
+            ),
+            font=get_font(size=11),
+            text_color=THEME["text_primary"],
+            anchor="w",
+            justify="left",
+            wraplength=620,
+        )
+        self.lbl_permission_banner.pack(side="left", fill="x", expand=True, padx=(0, 8))
+
+        self.btn_dismiss_permission = ctk.CTkButton(
+            perm_inner,
+            text="Dismiss",
+            width=72,
+            height=26,
+            font=get_font(size=11, weight="bold"),
+            fg_color=THEME["card_bg"],
+            hover_color=THEME["border"],
+            text_color=THEME["text_primary"],
+            corner_radius=6,
+            cursor="hand2",
+            command=self._dismiss_permission_banner,
+        )
+        self.btn_dismiss_permission.pack(side="right")
+
         # Universal Deliverable Quick Action Button (Localhost, Word, Excel, Figma, PDF)
         self.current_deliverable = None
         self.local_link_container = ctk.CTkFrame(active_inner, fg_color="transparent")
@@ -394,6 +437,27 @@ class TrackerView(ctk.CTkFrame):
         except Exception:
             pass
 
+    def _dismiss_permission_banner(self) -> None:
+        """Hide the Screen Recording notice for the rest of this session."""
+        self._permission_banner_dismissed = True
+        self.permission_banner.pack_forget()
+
+    def _update_permission_banner(self, titles_available: bool) -> None:
+        """Show or hide the macOS Screen Recording notice under the live card."""
+        if sys.platform != "darwin":
+            self.permission_banner.pack_forget()
+            return
+
+        if (
+            self.is_tracking
+            and not titles_available
+            and not self._permission_banner_dismissed
+        ):
+            if not self.permission_banner.winfo_ismapped():
+                self.permission_banner.pack(fill="x", pady=(8, 0))
+        else:
+            self.permission_banner.pack_forget()
+
     def update_live_snapshot(self, snapshot: Dict[str, Any], category: str) -> None:
         """
         Thread-safe update of current active window and prepend to activity feed.
@@ -402,6 +466,7 @@ class TrackerView(ctk.CTkFrame):
         window_title = snapshot.get("window_title", "Desktop / Idle")
         is_idle = snapshot.get("is_idle", False)
         idle_sec = snapshot.get("idle_seconds", 0)
+        titles_available = bool(snapshot.get("titles_available", True))
 
         action_verb = snapshot.get("action_verb") or f"Using {app_name}"
         transition = snapshot.get("transition_type") or "Active"
@@ -424,6 +489,8 @@ class TrackerView(ctk.CTkFrame):
             self.lbl_stuck_alert.pack(fill="x", pady=(4, 0))
         else:
             self.lbl_stuck_alert.pack_forget()
+
+        self._update_permission_banner(titles_available)
 
         cat_color = CATEGORY_CONFIG.get(category, {}).get("color", "#64748b")
         self.category_badge.configure(

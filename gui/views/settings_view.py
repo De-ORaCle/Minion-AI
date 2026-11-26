@@ -9,6 +9,7 @@ This view provides controls for:
 5. Privacy exclusion safeguards.
 """
 
+import sys
 import threading
 import subprocess
 import tkinter.messagebox as messagebox
@@ -18,6 +19,7 @@ from core.database import DatabaseManager
 from core.ai_agent import OllamaAgent
 from core.autostart import is_autostart_enabled, enable_autostart, disable_autostart
 from config import THEME, CATEGORY_CONFIG, DEFAULT_PRIVACY_EXCLUSIONS, get_font, FOCUS_DOMAINS
+from gui.tray_manager import TRAY_SUPPORTED
 
 
 class SettingsView(ctk.CTkFrame):
@@ -202,11 +204,11 @@ class SettingsView(ctk.CTkFrame):
         )
         lbl_switch_hint.pack(anchor="w", pady=(0, 10))
 
-        # Switch 2: Windows Boot Autostart
+        # Switch 2: Login Autostart
         current_autostart = is_autostart_enabled()
         self.switch_autostart_boot = ctk.CTkSwitch(
             auto_inner,
-            text="Start Minion AI on Windows Boot (Silent Ambient Intelligence)",
+            text="Start Minion AI on Login (Silent Ambient Intelligence)",
             font=get_font(size=13, weight="bold"),
             text_color=THEME["text_primary"],
             progress_color=THEME["denim_blue"],
@@ -220,15 +222,25 @@ class SettingsView(ctk.CTkFrame):
             self.switch_autostart_boot.deselect()
         self.switch_autostart_boot.pack(anchor="w", pady=(2, 2))
 
+        if sys.platform == "darwin":
+            boot_hint = (
+                "Registers a LaunchAgents login item so Minion starts at login. "
+                "Tracking only resumes if not paused."
+            )
+        else:
+            boot_hint = (
+                "Runs Minion AI silently in the background tray on restart. "
+                "Tracking only resumes if not paused."
+            )
         lbl_boot_hint = ctk.CTkLabel(
             auto_inner,
-            text="Runs Minion AI silently in the background tray on restart. Tracking only resumes if not paused.",
+            text=boot_hint,
             font=get_font(size=12),
             text_color=THEME["text_muted"],
         )
         lbl_boot_hint.pack(anchor="w", pady=(0, 10))
 
-        # Switch 3: Close to System Tray
+        # Switch 3: Close to System Tray (Windows / platforms with tray support)
         current_close_tray = self.db.get_setting("close_to_tray", default="true").lower() == "true"
         self.switch_close_tray = ctk.CTkSwitch(
             auto_inner,
@@ -244,7 +256,6 @@ class SettingsView(ctk.CTkFrame):
             self.switch_close_tray.select()
         else:
             self.switch_close_tray.deselect()
-        self.switch_close_tray.pack(anchor="w", pady=(2, 2))
 
         lbl_tray_hint = ctk.CTkLabel(
             auto_inner,
@@ -252,7 +263,9 @@ class SettingsView(ctk.CTkFrame):
             font=get_font(size=12),
             text_color=THEME["text_muted"],
         )
-        lbl_tray_hint.pack(anchor="w")
+        if TRAY_SUPPORTED:
+            self.switch_close_tray.pack(anchor="w", pady=(2, 2))
+            lbl_tray_hint.pack(anchor="w")
 
         # SECTION 2.5: Multi-Disciplinary Work Profile & Focus Domain
         profile_card = ctk.CTkFrame(
@@ -832,7 +845,7 @@ class SettingsView(ctk.CTkFrame):
         self.db.set_setting("tracking_enabled", "true" if is_enabled else "false")
 
     def _on_toggle_autostart_boot(self) -> None:
-        """Toggle Windows startup registry entry."""
+        """Toggle login/boot autostart registration."""
         is_enabled = bool(self.switch_autostart_boot.get())
         if is_enabled:
             enable_autostart(minimized=True)
